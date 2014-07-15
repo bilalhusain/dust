@@ -1,4 +1,5 @@
 dust
 ====
 
-Dust Programming Language
+![Dust Programming Language](dust.png)
+
