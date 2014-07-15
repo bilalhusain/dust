@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset=utf-8>
+		<title>Dust Programming Language</title>
+		<style type="text/css">
+			body { margin: auto; padding: 10px; width: 800px; background-color: black; color: #AAA; font-family: serif; font-size: 18px; }
+			header { text-align: center; }
+			div { margin: 5px; padding: 5px; text-align: justify; }
+			pre { border-left: thin solid #AAA; padding-left: 10px; }
+			.example { width: 320px; float: right; margin-left: 50px; }
+			textarea { display: block; border: none; border-left: thin solid #AAA; padding-left: 10px; background-color: black; color: #AAA; font-size: 16px; resize: none; }
+			#output-container { position: fixed; background-color: black; border: 3px solid gray; left: 320px; top: 100px; z-index: 7; }
+			a { color: #AAA; text-decoration: underline; }
+			a:visited { color: #AAA; }
+			a:hover { color: #77F; }
+		</style>
+		<script src="dust.js"></script>
+		<script>
+			// shim to get array index accessors working
+			Array.prototype.get = function(index) { return this[index]; }
+			Array.prototype.set = function(index, value) { this[index] = value; }
+
+			var INTRODUCED_VAR_COUNTER = 0;
+			var module = {exports: {}};
+			function terminate(m) { throw 'error: ' + m; }
+			function log(m) { if (m && (typeof m.toHtmlString === 'function')) m = m.toHtmlString(); /* eat msg */ }
+			function init() { INTRODUCED_VAR_COUNTER = 0; }
+			function newvar(x) { INTRODUCED_VAR_COUNTER++; return "_x" + INTRODUCED_VAR_COUNTER; }
+			function reportIdentifier(x) { var m = /^_x([1-9][0-9]*)$/.exec(x); if (!m) return; var i = +m[1]; if (i > INTRODUCED_VAR_COUNTER) INTRODUCED_VAR_COUNTER = i; }
+			function run(code) {
+				init();
+				TYPE_VAR_ID = 0;
+				ASSUMED = [];
+				ENV = {};
+				FS = new FileNode('/', true);
+				FS.mkfile('window.rs', 'pub mod console{pub fn log<T>(s: T){}}\npub fn alert<T>(s: T){}');
+				transpile('window.rs');
+				var ctx = new Context();
+				ctx.setIdent('alert', ENV.window.getIdent('alert'));
+				ctx.identChildrenEnv['alert'] = ENV.window.identChildrenEnv['alert'];
+				ctx.setMod('console', ctx.getType(TypeKeys.UNIT));
+				ctx.modChildrenEnv['console'] = ENV.window.modChildrenEnv['console'];
+				try {
+					FS.mkfile('main.rs', code);
+					var output = transpile('main.rs', ctx).content;
+					document.getElementById('output').value = output;
+					OUT = output;
+					eval(output);
+					return true;
+				} catch (e) {
+					ERR = e;
+					alert((e.constructor === LocatedError) ? ("compile time error: " + e.msg) : e);
+				}
+			}
+			window.addEventListener('load', function() {
+				document.getElementById('contact').innerHTML = "author: Bilal Husain &lt;" + atob('YmlsYWxAYmlsYWxodXNhaW4uY29t') + "&gt;";
+			});
+			window.addEventListener('keypress', function(e) {
+				if (e.charCode !== '~'.charCodeAt(0)) return;
+				var el = document.getElementById('output-container');
+				el.style.display = (el.style.display === 'none') ? 'block' : 'none';
+			});
+			window.addEventListener('click', function(e) {
+				if (!e.target.previousElementSibling) return;
+				if (e.target.getAttribute('type') !== 'button') return;
+				run(e.target.previousElementSibling.value);
+			});
+		</script>
+	</head>
+	<body>
+		<header><img src=dust.png width=128px title="Dust is an attempt to lure you to Rust" /></header>
+
+		<div>
+		<p>Dust is a programming language inspired by <a href="http://www.rust-lang.org/">Rust</a> and targeted to run on browsers and on JavaScript engines. The runtime works by translating Dust code to JavaScript.</p>
+		<p>The following examples demonstrate the language basics.</p>
+		</div>
+
+		<div id=output-container style='display: none;'>
+		<h3>Dust &rarr; JavaScript</h3>
+		<textarea id=output spellCheck=false readonly rows=12 cols=64>
+		</textarea>
+		</div>
+
+		<div class=example>
+		<h3>Hello World!</h3>
+			<textarea spellCheck=false rows=3 cols=32>
+let msg = "hello world!";
+//console::log(msg);
+alert(msg);</textarea>
+			<input type=button value=Run />
+		</div>
+		<div>
+		<p>The keyword <code>let</code> is used to declare a variable. The type of variable is inferred. In the example, using <code>msg + 1</code> will result in a compilation error because we are trying to add a number to a string.</p>
+		<p>Use <code>//</code> to comment a line.</p>
+		</div>
+		<div style='clear: both;'></div>
+
+		<div class=example>
+		<h3>If statement</h3>
+			<textarea spellCheck=false rows=5 cols=32>
+if 3 > 5 {
+    alert("interesting");
+} else {
+    alert("boring");
+}</textarea>
+			<input type=button value=Run />
+		</div>
+		<div>
+		<p><code>if</code> ... <code>else if</code> ... <code>else</code> blocks need curly braces around the blocks. The brackets around the condition are not required.</p>
+		<p><code>if ... else</code> can also act as expression. Eg, <code>let max = if a &gt; b { a } else { b };</code></p>
+		</div>
+		<div style='clear: both;'></div>
+
+		<div class=example>
+		<h3>Match</h3>
+			<textarea spellCheck=false rows=8 cols=32>
+let count = 5;
+let msg = match count {
+    0         => "nothing",
+    1         => "one item",
+    2 | 3 | 4 => "few items",
+    _         => "many items"
+};
+alert(msg);</textarea>
+			<input type=button value=Run />
+		</div>
+		<div>
+		<p>Instead of <code>switch</code>, there's <code>match</code> control structure which works by matching a value with a pattern and executing the matching arm. <code>_</code> has the semantics of <i>otherwise</i>.</p>
+		<p>Just like <code>if</code>, it can have an expression on the <abbr title='Right Hand Side'>RHS</abbr> or a block of code. It should be noted that the type checking is in place which means that all the RHS must have the same type.</p>
+		</div>
+		<div style='clear: both;'></div>
+
+		<div class=example>
+		<h3>Loop</h3>
+			<textarea spellCheck=false rows=7 cols=32>
+let mut result = "";
+let mut i = 0;
+while i < 3 {
+    i += 1;
+    result += "la";
+}
+alert(result);</textarea>
+			<input type=button value=Run />
+		</div>
+		<div>
+		<p>Again, brackets around the condition are skipped.</p>
+		<p>The semantics of <code>mut</code> are to indicate if a variable is mutable. However, it is not yet enforced in the language.</p>
+		<p>Operator <code>++</code> is not supported, use <code>+= 1</code>.</p>
+		</div>
+		<div style='clear: both;'></div>
+
+		<div class=example>
+		<h3>Function</h3>
+			<textarea spellCheck=false rows=5 cols=32>
+fn double(x) {
+    console::log("doubling...");
+    x * 2
+}
+alert(double(4));</textarea>
+			<input type=button value=Run />
+		</div>
+		<div>
+		<p>The last expression is returned. Note that the function defined in the example is not polymorphic. Calling <code>double</code> on a string type will fail. The correct signature for a polymorphic <code>double</code> function is <code>fn double&lt;T&gt;(x: T) -&gt; T</code></p>
+		</div>
+		<div style='clear: both;'></div>
+
+		<div class=example>
+		<h3>Implementation of KMP algorithm</h3>
+			<textarea spellCheck=false rows=53 cols=96>
+/// returns minimum index where W is found in S
+fn kmp(S, W) {
+
+    // build table T
+    let mut pos = 2;
+    let mut cnd = 0;
+    let mut T = [];
+
+    let mut j = 0;
+    while j < W.length {
+        T.push(0);
+        j += 1;
+    }
+
+    T.set(0, -1);
+    T.set(1, 0);
+    while pos < W.length {
+        if W.charCodeAt(pos - 1) == W.charCodeAt(cnd) {
+            cnd += 1;
+            T.set(pos, cnd);
+            pos += 1;
+        } else if cnd > 0 {
+            cnd = T.get(cnd);
+        } else {
+            T.set(pos, 0);
+            pos += 1;
+        }
+    }
+
+    // start the search
+    let mut m = 0;
+    let mut i = 0;
+    while m + i < S.length {
+        if W.charCodeAt(i) == S.charCodeAt(m + i) {
+            if i == (W.length - 1) {
+                return m;
+            }
+            i += 1;
+        } else {
+            if T.get(i) > -1 {
+                i = T.get(i);
+                m += i - T.get(i);
+            } else {
+                i = 0;
+                m += 1;
+            }
+        }
+    }
+
+    S.length
+}
+
+alert(kmp("ABC ABCDAB ABCDABCDABDE", "ABCDABD"));</textarea>
+			<input type=button value=Run />
+		</div>
+		<div>
+		<p>The function <code>kmp</code> implements the Knuth-Morris-Pratt string searching algorithm and is based on the pseudocode provided on the <a href='http://en.wikipedia.org/wiki/Knuth%E2%80%93Morris%E2%80%93Pratt_algorithm'>wikipedia</a> entry for the algorithm.</p>
+		<p>Note that the implementation does not follow a good naming convention and uses JavaScript functions, eg, <code>charCodeAt</code> instead of relying on its standard library (Dust's standard library is missing, it works by transpiling Dust code to JavaScript). There is no <code>[]</code> operator to access array element currently; as a workaround, JavaScript <code>Array</code> prototype has been armed with <code>get</code> and <code>set</code> functions which facilitates the usages like <code>T.get</code> in the example.</p>
+		</div>
+		<div style='clear: both;'></div>
+
+		<br /><hr />
+		<div id=contact></div>
+	</body>
+</html>
