@@ -1,0 +1,24 @@
+{
+  "name": "dust",
+  "version": "0.0.1",
+  "description": "Dust",
+  "main": "./dustc",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/bilalhusain/dust.git"
+  },
+  "keywords": [
+    "language",
+    "javascript",
+    "compiler"
+  ],
+  "author": "Bilal Husain",
+  "license": "BSD",
+  "bugs": {
+    "url": "https://github.com/bilalhusain/dust/issues"
+  },
+  "homepage": "https://github.com/bilalhusain/dust"
+}

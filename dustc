@@ -1,0 +1,34 @@
+#!/usr/bin/env node
+
+var fs = require('fs');
+if (process.argv.length <= 2) {
+    console.warn("missing filename");
+    process.exit(1);
+}
+var filename = process.argv[2];
+var includes = 'rust-shim.js rust-token.js rust-lexer.js util.js hm.js context.js astnodes.js rustish-parser-i.js'.split(' ');
+for (var i = 0; i < includes.length; i++) {
+    eval(fs.readFileSync(includes[i]).toString());
+}
+
+var INTRODUCED_VAR_COUNTER = 0;
+
+function terminate(m) { throw 'error: ' + m; }
+function log(m) { if (m && (typeof m.toHtmlString === 'function')) m = m.toHtmlString(); console.warn(m); }
+function newvar(x) { INTRODUCED_VAR_COUNTER++; return "_x" + INTRODUCED_VAR_COUNTER; }
+function reportIdentifier(x) { var m = /^_x([1-9][0-9]*)$/.exec(x); if (!m) return; var i = +m[1]; if (i > INTRODUCED_VAR_COUNTER) INTRODUCED_VAR_COUNTER = i; }
+
+FS = new FileNode('/', true);
+FS.mkfile('window.rs', 'pub mod console{pub fn log<T>(s: T){}}');
+transpile('window.rs');
+var ctx = new Context();
+ctx.setMod('console', ctx.getType(TypeKeys.UNIT));
+ctx.modChildrenEnv['console'] = ENV.window.modChildrenEnv['console'];
+
+try {
+    FS.mkfile('main.rs', fs.readFileSync(filename).toString());
+    var output = transpile('main.rs', ctx).content;
+    console.log(output);
+} catch (e) {
+    console.warn((e.constructor === LocatedError) ? ("compile time error: " + e.msg) : e);
+}
