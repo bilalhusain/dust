@@ -10,10 +10,10 @@ Using with nodejs
 
 Install npm package dust-lang
 
-    npm install dust-lang -g
+    npm install dust-lang
 
 Compile input file
 
     echo 'console::log("hello");' > hello.ds
-    dustc hello.ds > hello.js
+    ./node_modules/dust-lang/dustc hello.ds > hello.js
     node hello.js

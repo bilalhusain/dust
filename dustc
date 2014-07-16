@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 var fs = require('fs');
+var path = require('path');
 if (process.argv.length <= 2) {
     console.warn("missing filename");
     process.exit(1);
@@ -8,7 +9,7 @@ if (process.argv.length <= 2) {
 var filename = process.argv[2];
 var includes = 'rust-shim.js rust-token.js rust-lexer.js util.js hm.js context.js astnodes.js rustish-parser-i.js'.split(' ');
 for (var i = 0; i < includes.length; i++) {
-    eval(fs.readFileSync(includes[i]).toString());
+    eval(fs.readFileSync(path.join(__dirname, includes[i])).toString());
 }
 
 var INTRODUCED_VAR_COUNTER = 0;
