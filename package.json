@@ -1,6 +1,6 @@
 {
   "name": "dust-lang",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Dust Programming Language",
   "main": "./dustc",
   "scripts": {
