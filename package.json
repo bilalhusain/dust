@@ -1,7 +1,7 @@
 {
-  "name": "dust",
+  "name": "dust-lang",
   "version": "0.0.1",
-  "description": "Dust",
+  "description": "Dust Programming Language",
   "main": "./dustc",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
